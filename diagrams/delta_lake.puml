@@ -1,0 +1,116 @@
+@startuml Delta Lake
+skinparam linetype polyline
+skinparam useBetaStyle true
+
+!define AzurePuml https://raw.githubusercontent.com/plantuml-stdlib/Azure-PlantUML/release/2-2/dist
+!includeurl AzurePuml/AzureCommon.puml
+!includeurl AzurePuml/AzureSimplified.puml
+!includeurl AzurePuml/Analytics/AzureDatabricks.puml
+!includeurl AzurePuml/Databases/AzureDataFactory.puml
+!includeurl AzurePuml/Analytics/AzureDataLakeStoreGen1.puml
+!includeurl AzurePuml/Databases/AzureSqlDataWarehouse.puml
+!includeurl AzurePuml/Storage/AzureBlobStorage.puml
+
+
+AzureDataFactory(adf1, "Data Integration", "", "")
+AzureDatabricks(adb1, "Lakehouse", "", "")
+
+AzureDataFactory(adf2, "Data Integration", "", "")
+AzureDatabricks(adb2, "Lakehouse", "", "")
+
+!unquoted procedure $NestedStorage($storageSprite, $alias, $label, $color)
+    <style>
+        .nestedStorage {
+            BackgroundColor transparent
+            lineColor transparent
+        }
+    </style>
+
+
+    rectangle "<color:$color><$storageSprite></color>\n$label" as $alias <<nestedStorage>>
+    
+
+!endprocedure
+
+!function $layer_alias($x, $y) !return $x + $y
+
+!unquoted procedure $DeltaLake($storageSprite, $alias, $label="")
+    ' Delta Lake rectangle for relations to storage accounts.
+    ' Relations to the rectangle will look strange. Use DeltaLakeSubDiagram for those.
+    <style>
+        .deltaLake {
+            BackgroundColor white
+            lineColor black
+        }
+    </style>
+
+
+    ' sepcifying sterotype to apply styles
+    rectangle "<img:../assets/delta_lake_260x260.png{scale=0.15}>$label" as $alias <<deltaLake>> {
+            $NestedStorage($storageSprite, $layer_alias($alias, "bronze"), "Bronze", "DC4E2F")
+            $NestedStorage($storageSprite, $layer_alias($alias, "silver"), "Silver", "C4C3C0")
+            $NestedStorage($storageSprite, $layer_alias($alias, "gold"), "Gold", "D0CD3F")
+        }
+!endprocedure
+
+!unquoted procedure $DeltaLakeSubDiagram($storageSprite, $alias, $label="")
+    ' Delta Lake with nested storage for when you want to snap
+    ' to the delta lake rectangle (using sub-diagram)
+    ' The sub-diagram {{ }} is independent of root.
+    ' Styles and settings needs to be repeated  
+    <style>
+        .deltaLake {
+            BackgroundColor white
+            lineColor black
+        }
+    </style>
+
+    rectangle $alias <<deltaLake>> [
+        == <img:../assets/delta_lake_260x260.png{scale=0.15}>$label
+        {{
+            !includeurl AzurePuml/Storage/AzureBlobStorage.puml
+            !includeurl AzurePuml/AzureSimplified.puml
+            <style>
+                .nestedStorage {
+                    BackgroundColor transparent
+                    lineColor transparent
+                }
+             </style>
+             
+            rectangle "<color:DC4E2F><$AzureBlobStorage></color>\nBrozne Layer" as bronze <<nestedStorage>>
+            rectangle "<color:C4C3C0><$AzureBlobStorage></color>\nSilver Layer" as silver <<nestedStorage>>
+            rectangle "<color:D0CD3F><$AzureBlobStorage></color>\nGold Layer" as gold <<nestedStorage>>
+             bronze -[hidden]r- silver
+             silver -[hidden]r- gold
+        }}
+    ]
+!endprocedure
+
+' Example 1 Horizontal (undesriable)
+
+AzureDataFactory(adf1, "Data Integration", "", "")
+AzureDatabricks(adb1, "Lakehouse Horizontal", "", "")
+$DeltaLake($AzureBlobStorage, lake1, "Delta Lake")
+
+adf1 -r-> lake1
+lake1 -r-> adb1
+$layer_alias("lake1", "silver") -[hidden]r- $layer_alias("lake1", "gold")
+
+' Example 2 horizotnal to nested storage
+AzureDataFactory(adf2, "Data Integration", "", "")
+AzureDatabricks(adb2, "Lakehouse", "", "")
+$DeltaLake($AzureBlobStorage, lake2, "Delta Lake")
+
+adf2 -r-> $layer_alias("lake2", "bronze")
+$layer_alias("lake2", "gold") -r-> adb2
+$layer_alias("lake2", "bronze") -[hidden]r- $layer_alias("lake2", "silver")
+$layer_alias("lake2", "silver") -[hidden]r- $layer_alias("lake2", "gold")
+
+' Example 3 Horizontal (desirable)
+AzureDataFactory(adf3, "Data Integration", "", "")
+AzureDatabricks(adb3, "Lakehouse", "", "")
+$DeltaLakeSubDiagram($AzureBlobStorage, lake3, "Delta Lake")
+adf3 -r-> lake3
+lake3 -r-> adb3
+
+@enduml
