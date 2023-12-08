@@ -1,6 +1,6 @@
 @startuml Two Mode Sample
 skinparam linetype polyline
-skinparam useBetaStyle trueD
+skinparam useBetaStyle true
 
 !define AzurePuml https://raw.githubusercontent.com/plantuml-stdlib/Azure-PlantUML/release/2-2/dist
 !includeurl AzurePuml/AzureCommon.puml
@@ -15,6 +15,7 @@ skinparam useBetaStyle trueD
 AzureDataFactory(adf, "Data Integration", "", "")
 AzureDatabricks(adb, "Lakehouse", "", "")
 AzureSqlDataWarehouse(dw, "Synapse Warehouse", "")
+AzureDataLakeStoreGen1(lake, "Azure Storage","")
 
 !unquoted procedure $NestedStorage($storageSprite, $alias, $label, $color)
     <style>
@@ -48,14 +49,14 @@ AzureSqlDataWarehouse(dw, "Synapse Warehouse", "")
         }
 
 
-    bronze -[hidden]r- silver
-    silver -[hidden]r- gold
-
 !endprocedure
 
 $DeltaLake($AzureBlobStorage,DeltaLake, "Delta Lake")
+adf -> lake
+DeltaLake -- lake
+lake <--> adb
+lake -[hidden]- silver
 
-adf -> adb
-adb -> dw
-
+    bronze -[hidden]r- silver
+    silver -[hidden]r- gold
 @enduml
