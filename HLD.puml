@@ -1,0 +1,61 @@
+@startuml Two Mode Sample
+skinparam linetype polyline
+skinparam useBetaStyle trueD
+
+!define AzurePuml https://raw.githubusercontent.com/plantuml-stdlib/Azure-PlantUML/release/2-2/dist
+!includeurl AzurePuml/AzureCommon.puml
+!includeurl AzurePuml/AzureSimplified.puml
+!includeurl AzurePuml/Analytics/AzureDatabricks.puml
+!includeurl AzurePuml/Databases/AzureDataFactory.puml
+!includeurl AzurePuml/Analytics/AzureDataLakeStoreGen1.puml
+!includeurl AzurePuml/Databases/AzureSqlDataWarehouse.puml
+!includeurl AzurePuml/Storage/AzureBlobStorage.puml
+
+
+AzureDataFactory(adf, "Data Integration", "", "")
+AzureDatabricks(adb, "Lakehouse", "", "")
+AzureSqlDataWarehouse(dw, "Synapse Warehouse", "")
+
+!unquoted procedure $NestedStorage($storageSprite, $alias, $label, $color)
+    <style>
+        .nestedStorage {
+            BackgroundColor transparent
+            lineColor transparent
+        }
+    </style>
+
+
+    rectangle "<color:$color><$storageSprite></color>\n$label" as $alias <<nestedStorage>>
+    
+
+!endprocedure
+
+!unquoted procedure $DeltaLake($storageSprite, $alias, $label="")
+
+    <style>
+        .deltaLake {
+            BackgroundColor white
+            lineColor black
+        }
+    </style>
+
+
+    ' sepcifying sterotype to apply styles
+    rectangle "<img:../icons-png/delta_lake_260x260.png{scale=0.15}>$label" as $alias <<deltaLake>> {
+            $NestedStorage($storageSprite, bronze, "Bronze", "DC4E2F")
+            $NestedStorage($storageSprite, silver, "Silver", "C4C3C0")
+            $NestedStorage($storageSprite, gold, "Gold", "D0CD3F")
+        }
+
+
+    bronze -[hidden]r- silver
+    silver -[hidden]r- gold
+
+!endprocedure
+
+$DeltaLake($AzureBlobStorage,DeltaLake, "Delta Lake")
+
+adf -> adb
+adb -> dw
+
+@enduml
